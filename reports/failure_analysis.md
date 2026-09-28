@@ -1,0 +1,37 @@
+# SkillLens -- Failure Analysis (Step 11)
+
+Test set size: 450. Wrong predictions: 132 (29.3% error rate, matching the accuracy reported in reports/evaluation_report.md).
+
+## Headline findings
+
+- **132/132 errors (100.0%) are adjacent-category misses** -- the model never confuses opposite extremes (e.g. 'Needs Improvement' predicted as 'Highly Ready'). This is a strong sanity signal: mistakes are graded, not random.
+- **49/132 errors (37.1%) are boundary cases** -- the true (hidden) latent score sits within 2.5 points of a bin edge (e.g. a true score of 39.2, right next to the 40 cutoff for 'Needs Improvement'/'Developing'). These are close to unavoidable: a categorical cutoff on a continuous, noisy quantity will always produce some near-tie errors.
+
+## 20 lowest-confidence wrong predictions
+
+|     | true              | pred              |   confidence |   true_latent_score |   dist_to_boundary | likely_cause                                                                                                                                                                      |
+|----:|:------------------|:------------------|-------------:|--------------------:|-------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 390 | Placement Ready   | Developing        |        0.494 |              76.789 |              3.211 | Near-boundary + class overlap: student sits close to the boundary and in a region where the two neighboring classes' feature distributions overlap heavily (see EDA boxplots).    |
+| 391 | Developing        | Placement Ready   |        0.494 |              46.538 |              6.538 | Low-confidence genuine miss: model was nearly 50/50 between two classes; likely noisy synthetic sample (recall Gaussian noise, sigma=7, was added to the latent score by design). |
+| 352 | Needs Improvement | Developing        |        0.503 |              37.284 |              2.716 | Near-boundary + class overlap: student sits close to the boundary and in a region where the two neighboring classes' feature distributions overlap heavily (see EDA boxplots).    |
+| 181 | Developing        | Needs Improvement |        0.514 |              51.709 |              8.291 | Low-confidence genuine miss: model was nearly 50/50 between two classes; likely noisy synthetic sample (recall Gaussian noise, sigma=7, was added to the latent score by design). |
+|  57 | Developing        | Placement Ready   |        0.515 |              58.308 |              1.692 | Boundary case: true latent score is within ~2.5 points of a bin edge -- essentially a coin flip between two adjacent categories, not a real model failure.                        |
+| 275 | Developing        | Placement Ready   |        0.52  |              59.798 |              0.202 | Boundary case: true latent score is within ~2.5 points of a bin edge -- essentially a coin flip between two adjacent categories, not a real model failure.                        |
+| 206 | Placement Ready   | Developing        |        0.524 |              62.365 |              2.365 | Boundary case: true latent score is within ~2.5 points of a bin edge -- essentially a coin flip between two adjacent categories, not a real model failure.                        |
+|  87 | Developing        | Needs Improvement |        0.524 |              47.036 |              7.036 | Low-confidence genuine miss: model was nearly 50/50 between two classes; likely noisy synthetic sample (recall Gaussian noise, sigma=7, was added to the latent score by design). |
+| 319 | Placement Ready   | Developing        |        0.529 |              72.012 |              7.988 | Low-confidence genuine miss: model was nearly 50/50 between two classes; likely noisy synthetic sample (recall Gaussian noise, sigma=7, was added to the latent score by design). |
+| 105 | Developing        | Placement Ready   |        0.53  |              59.17  |              0.83  | Boundary case: true latent score is within ~2.5 points of a bin edge -- essentially a coin flip between two adjacent categories, not a real model failure.                        |
+|  64 | Developing        | Placement Ready   |        0.538 |              57.681 |              2.319 | Boundary case: true latent score is within ~2.5 points of a bin edge -- essentially a coin flip between two adjacent categories, not a real model failure.                        |
+| 298 | Developing        | Placement Ready   |        0.538 |              53.177 |              6.823 | Low-confidence genuine miss: model was nearly 50/50 between two classes; likely noisy synthetic sample (recall Gaussian noise, sigma=7, was added to the latent score by design). |
+|   6 | Placement Ready   | Highly Ready      |        0.539 |              68.65  |              8.65  | Low-confidence genuine miss: model was nearly 50/50 between two classes; likely noisy synthetic sample (recall Gaussian noise, sigma=7, was added to the latent score by design). |
+| 173 | Placement Ready   | Developing        |        0.54  |              65.382 |              5.382 | Near-boundary + class overlap: student sits close to the boundary and in a region where the two neighboring classes' feature distributions overlap heavily (see EDA boxplots).    |
+| 314 | Placement Ready   | Highly Ready      |        0.543 |              70.226 |              9.774 | Low-confidence genuine miss: model was nearly 50/50 between two classes; likely noisy synthetic sample (recall Gaussian noise, sigma=7, was added to the latent score by design). |
+| 330 | Developing        | Needs Improvement |        0.548 |              49.726 |              9.726 | Low-confidence genuine miss: model was nearly 50/50 between two classes; likely noisy synthetic sample (recall Gaussian noise, sigma=7, was added to the latent score by design). |
+| 100 | Highly Ready      | Placement Ready   |        0.549 |              84.508 |              4.508 | Near-boundary + class overlap: student sits close to the boundary and in a region where the two neighboring classes' feature distributions overlap heavily (see EDA boxplots).    |
+| 203 | Placement Ready   | Developing        |        0.556 |              62.762 |              2.762 | Near-boundary + class overlap: student sits close to the boundary and in a region where the two neighboring classes' feature distributions overlap heavily (see EDA boxplots).    |
+| 120 | Placement Ready   | Developing        |        0.56  |              64.853 |              4.853 | Near-boundary + class overlap: student sits close to the boundary and in a region where the two neighboring classes' feature distributions overlap heavily (see EDA boxplots).    |
+| 165 | Developing        | Needs Improvement |        0.562 |              54.752 |              5.248 | Near-boundary + class overlap: student sits close to the boundary and in a region where the two neighboring classes' feature distributions overlap heavily (see EDA boxplots).    |
+
+## What we did NOT do
+
+We did not simply label these 'the model was wrong'. Each row's cause was assigned from measurable evidence: distance from the true (hidden) latent score to the nearest category boundary, whether the model's confidence was near 50/50, and whether the miss was adjacent (one band off) or a larger jump.
